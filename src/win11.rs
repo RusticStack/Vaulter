@@ -50,6 +50,8 @@ pub fn system_theme() -> SystemTheme {
             Ok("dark") => true,
             _ => dark,
         };
+        // For demos and screenshots: a brand accent without touching Windows.
+        let accent = std::env::var("VAULTER_ACCENT").ok().and_then(|hex| accent_palette_from(&hex)).unwrap_or(accent);
         SystemTheme { dark, accent }
     }
     #[cfg(not(windows))]
@@ -67,6 +69,19 @@ fn parse_accent_palette(bytes: &[u8]) -> Option<[u32; 7]> {
         out[i] = (u32::from(c[0]) << 16) | (u32::from(c[1]) << 8) | u32::from(c[2]);
     }
     Some(out)
+}
+
+/// A Windows-style accent palette (Light3..Dark3) from one `#RRGGBB` base:
+/// lighter shades mix toward white, darker ones toward black.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn accent_palette_from(hex: &str) -> Option<[u32; 7]> {
+    let v = u32::from_str_radix(hex.trim().trim_start_matches('#'), 16).ok()?;
+    let (r, g, b) = ((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff);
+    let mix = |to: u32, t: f32| {
+        let c = |x: u32| (x as f32 + (to as f32 - x as f32) * t).round() as u32;
+        (c(r) << 16) | (c(g) << 8) | c(b)
+    };
+    Some([mix(255, 0.55), mix(255, 0.35), mix(255, 0.18), v & 0xff_ffff, mix(0, 0.2), mix(0, 0.38), mix(0, 0.55)])
 }
 
 /// Whether the "Animation effects" setting (Accessibility › Visual effects) is on.

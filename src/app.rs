@@ -253,17 +253,21 @@ impl Shell {
                     })),
             )
             .child(
+                // The logo takes a 40px cell like the buttons before it, so
+                // the three sit on one rhythm; the name is Body Strong so it
+                // holds its own next to a 20px mark.
                 drag("identity")
                     .flex_none()
                     .flex()
                     .items_center()
-                    .gap(px(16.))
-                    .px(px(12.))
-                    .child(app_mark(20.))
+                    .pr(px(12.))
+                    .child(div().w(px(40.)).flex_none().flex().justify_center().child(app_mark(20.)))
                     .child(
                         div()
-                            .text_size(px(12.))
-                            .line_height(px(16.))
+                            .ml(px(2.))
+                            .text_size(px(14.))
+                            .line_height(px(20.))
+                            .font_weight(FontWeight::SEMIBOLD)
                             .text_color(if active { theme::text() } else { theme::text_muted() })
                             .child("Vaulter"),
                     ),
