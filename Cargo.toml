@@ -1,6 +1,6 @@
 [package]
 name = "vaulter"
-version = "2.2.0"
+version = "2.3.0"
 edition = "2024"
 description = "Patcher, tweaker and mod installer for the Borderlands series"
 license = "GPL-3.0-or-later"
