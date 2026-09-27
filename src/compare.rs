@@ -766,7 +766,7 @@ pub fn run(req: CaptureRequest, progress: Arc<Mutex<CaptureProgress>>) -> Result
 // still downloaded as a fallback for games with comparisons but no bundled set.
 
 /// GitHub repository whose releases host the comparison packs.
-pub const IMAGE_REPO: &str = "KelpHect/Vaulter";
+pub const IMAGE_REPO: &str = "RusticStack/Vaulter";
 
 /// The image sets compiled into the exe, one folder per game id.
 #[derive(rust_embed::RustEmbed)]

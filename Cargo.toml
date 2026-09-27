@@ -4,7 +4,7 @@ version = "2.2.0"
 edition = "2024"
 description = "Patcher, tweaker and mod installer for the Borderlands series"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/KelpHect/Vaulter"
+repository = "https://github.com/RusticStack/Vaulter"
 build = "build.rs"
 
 [[bin]]
