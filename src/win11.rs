@@ -71,8 +71,10 @@ fn parse_accent_palette(bytes: &[u8]) -> Option<[u32; 7]> {
     Some(out)
 }
 
-/// A Windows-style accent palette (Light3..Dark3) from one `#RRGGBB` base:
-/// lighter shades mix toward white, darker ones toward black.
+/// An accent palette (Light3..Dark3) where `#RRGGBB` is the fill of accent
+/// buttons in both themes (Windows would use a lighter shade in dark mode).
+/// A deep color keeps white text readable on it; the gradient ends and
+/// accent text get nearby shades.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn accent_palette_from(hex: &str) -> Option<[u32; 7]> {
     let v = u32::from_str_radix(hex.trim().trim_start_matches('#'), 16).ok()?;
@@ -81,7 +83,9 @@ fn accent_palette_from(hex: &str) -> Option<[u32; 7]> {
         let c = |x: u32| (x as f32 + (to as f32 - x as f32) * t).round() as u32;
         (c(r) << 16) | (c(g) << 8) | c(b)
     };
-    Some([mix(255, 0.55), mix(255, 0.35), mix(255, 0.18), v & 0xff_ffff, mix(0, 0.2), mix(0, 0.38), mix(0, 0.55)])
+    let fill = v & 0xff_ffff;
+    // Dark mode fills with [1] (gradient to [2]); light mode with [4] (from [3]).
+    Some([mix(255, 0.5), fill, mix(0, 0.12), fill, mix(0, 0.12), mix(0, 0.3), mix(0, 0.45)])
 }
 
 /// Whether the "Animation effects" setting (Accessibility › Visual effects) is on.
