@@ -259,7 +259,7 @@ impl Shell {
                     .items_center()
                     .gap(px(16.))
                     .px(px(12.))
-                    .child(app_mark(16.))
+                    .child(app_mark(20.))
                     .child(
                         div()
                             .text_size(px(12.))
