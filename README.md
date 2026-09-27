@@ -18,7 +18,7 @@ Better graphics, fewer crashes, mods and bug fixes, without editing a single fil
 </p>
 
 <p align="center">
-  <img src="assets/demo.gif" width="720" alt="Vaulter demo: the logo slams in, the app window swings in, a quality select picks a tier, a comparison split is dragged, and the theme wipes from dark to light">
+  <img src="assets/demo.gif" width="720" alt="Vaulter demo: fast Borderlands gameplay cuts into Vaulter's comparison viewer, then the app picks the Pandora Ultra look, opens the View distance options and loads a preset, ending on the Vaulter logo">
 </p>
 
 <p align="center"><i>Formerly Vault Patcher.</i></p>
@@ -163,4 +163,5 @@ files. Background research came from PCGamingWiki, the Nvidia BL2/TPS tweak guid
 Vaulter is free software under the [GNU General Public License v3.0 or later](LICENSE), made by
 [RusticStack](https://github.com/RusticStack). Bundled assets keep their own licenses: Noto Sans
 (SIL OFL, `assets/fonts/NotoSans-OFL.txt`). Borderlands is a trademark of Gearbox Software;
-Vaulter isn't affiliated with Gearbox or 2K.
+Vaulter isn't affiliated with Gearbox or 2K. The demo uses footage from official Borderlands
+trailers and music from Borderlands 2, © Gearbox Software and 2K.
