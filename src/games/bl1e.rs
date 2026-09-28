@@ -452,7 +452,7 @@ const SETUP: &[Component] = &[
         id: "dxvk",
         name: "DXVK Vulkan renderer",
         summary: "Smoother frame pacing on Vulkan",
-        description: "Runs the Direct3D 11 renderer on Vulkan, which fixes the remaster's uneven frame pacing for many players. Don't combine with ReShade or Luma (they also use dxgi.dll). If the game stays at 1080p on a multi-monitor PC, remove it. Needs an up-to-date driver with Vulkan 1.4.",
+        description: "Runs the Direct3D 11 renderer on Vulkan, which fixes the remaster's uneven frame pacing for many players. Can't be combined with Luma or ReShade (they also use dxgi.dll). If the game stays at 1080p on a multi-monitor PC, remove it. Needs an up-to-date driver with Vulkan 1.4.",
         group: Group::Performance,
         recommended: false,
         kind: ComponentKind::Dxvk { target: DxvkTarget::D3d11Win64, exe_dir: "Binaries\\Win64", conf: DXVK_CONF },
@@ -470,6 +470,23 @@ const SETUP: &[Component] = &[
             dest: "Binaries\\Win64",
             skip: &["README.txt"],
             enable: None,
+            exclusive: &[],
+        },
+        requires: &[],
+    },
+    Component {
+        id: "luma",
+        name: "Luma HDR and crash fix",
+        summary: "HDR, sharper anti-aliasing, and no more memory-leak crashes",
+        description: "Filoppi and DristoforColumb's Luma mod: HDR output, SMAA instead of FXAA, better ambient occlusion, sharpening and 16× filtering, plus a fix for the remaster's movie memory leak that crashes the game on area changes and cutscenes. Looks good in SDR too; press Home in game for its settings. Can't be combined with DXVK or ReShade (they also use dxgi.dll).",
+        group: Group::Performance,
+        recommended: false,
+        kind: ComponentKind::Archive {
+            url: "https://github.com/Filoppi/Luma-Framework/releases/latest/download/Luma-Borderlands_GOTY_Enhanced.zip",
+            dest: "Binaries\\Win64",
+            skip: &[],
+            enable: None,
+            exclusive: &["dxgi.dll"],
         },
         requires: &[],
     },
@@ -483,7 +500,7 @@ const SETUP: &[Component] = &[
         kind: ComponentKind::Sdk,
         requires: &[],
     },
-    bl1_mod("skill_ui_fix", "Skill Tree Fix", "Fixes skill tree display glitches", "Fixes skill tree UI glitches in the Enhanced edition. By Ry0511.", Group::Fixes, true,
+    bl1_mod("skill_ui_fix", "Skill Tree Details", "See what your next skill point and class mod really do", "The skill tree shows the bonus your class mod adds to each skill and what the next point changes. By Ry0511 and SleepMaster.", Group::Mods, true,
         "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/skill_tree_tweaks.sdkmod", "sdk_mods/skill_tree_tweaks.sdkmod", "skill_tree_tweaks"),
     Component {
         id: "bloodwing_fix",
@@ -497,6 +514,7 @@ const SETUP: &[Component] = &[
             dest: "sdk_mods\\BloodwingReturnFix",
             skip: &[],
             enable: Some("BloodwingReturnFix"),
+            exclusive: &[],
         },
         requires: &["sdk"],
     },
@@ -504,9 +522,23 @@ const SETUP: &[Component] = &[
         "https://github.com/galqawala/AutopickupBL1E/raw/refs/heads/master/AutopickupBL1E.sdkmod", "sdk_mods/AutopickupBL1E.sdkmod", "AutopickupBL1E"),
     bl1_mod("hide_full", "Hide Full Pickups", "No prompts for ammo you can't carry", "Stops showing pickup prompts for ammo and health you can't carry. By EerieGoesD.", Group::Mods, true,
         "https://github.com/EerieGoesD/borderlands-1-goty-mods/raw/refs/heads/main/HideFullPickups/HideFullPickups.sdkmod", "sdk_mods/HideFullPickups.sdkmod", "HideFullPickups"),
+    bl1_mod("use_no_reload", "Use Key Won't Reload", "Picking things up no longer reloads your gun", "Stops the Use key (E) also reloading your weapon, so grabbing loot mid-fight doesn't cancel a full magazine. By EerieGoesD.", Group::Fixes, true,
+        "https://github.com/EerieGoesD/borderlands-1-goty-mods/raw/refs/heads/main/UseNoReload/UseNoReload.sdkmod", "sdk_mods/UseNoReload.sdkmod", "UseNoReload"),
+    bl1_mod("auto_loot", "Auto Loot", "Guns, shields and gear picked up automatically", "Picks up weapons, shields, grenade mods, class mods, artifacts and SDUs as you walk over them, with options for what to take. Fills your backpack quickly, so it's opt-in. By galqawala.", Group::Mods, false,
+        "https://github.com/galqawala/AutoLootBL1E/raw/refs/heads/master/AutoLootBL1E.sdkmod", "sdk_mods/AutoLootBL1E.sdkmod", "AutoLootBL1E"),
+    bl1_mod("auto_open", "Auto-Open Chests", "Chests and lockers open as you approach", "Opens chests, lockers and other containers automatically when you get close, with a configurable range. Opt-in. By galqawala.", Group::Mods, false,
+        "https://github.com/galqawala/AutoContainerMod/raw/refs/heads/master/AutoContainerMod.sdkmod", "sdk_mods/AutoContainerMod.sdkmod", "AutoContainerMod"),
+    bl1_mod("sell_value", "Sell Value", "Item cards show what they sell for", "Shows each item's sell price on its card, so you know what's worth carrying back to a vendor. By EerieGoesD.", Group::Mods, true,
+        "https://github.com/EerieGoesD/borderlands-1-goty-mods/raw/refs/heads/main/SellValue/SellValue.sdkmod", "sdk_mods/SellValue.sdkmod", "SellValue"),
+    bl1_mod("gear_score", "Gear Score", "Item cards show weapon DPS and shield power", "Rates every weapon by damage per second and every shield by its power, using the game's own formulas, right on the item card. Skills aren't counted. By EerieGoesD.", Group::Mods, false,
+        "https://github.com/EerieGoesD/borderlands-1-goty-mods/raw/refs/heads/main/GearScore/GearScore.sdkmod", "sdk_mods/GearScore.sdkmod", "GearScore"),
+    bl1_mod("loot_radar", "Loot Radar", "Loot and unopened chests on your compass", "Marks nearby loot and unopened chests on the compass, with the distance to each. By EerieGoesD.", Group::Mods, false,
+        "https://github.com/EerieGoesD/borderlands-1-goty-mods/raw/refs/heads/main/LootRadar/LootRadar.sdkmod", "sdk_mods/LootRadar.sdkmod", "LootRadar"),
+    bl1_mod("objective_distance", "Objective Distance", "How far the objective is, with a guide line", "Shows the distance to your current objective and draws a line on the ground toward it, like the later games' waypoints. By EerieGoesD.", Group::Mods, false,
+        "https://github.com/EerieGoesD/borderlands-1-goty-mods/raw/refs/heads/main/ObjectiveDistance/ObjectiveDistance.sdkmod", "sdk_mods/ObjectiveDistance.sdkmod", "ObjectiveDistance"),
     bl1_mod("quick_vendors", "Quick Use Vendors", "Refill health and ammo from a vendor with one key", "Buy ammo and health straight from a vendor without opening its menu, like BL3. By RedxYeti.", Group::Mods, true,
         "https://github.com/RedxYeti/Yeti-BL1-SDK-Mods/raw/refs/heads/main/QuickUseVendors/QuickUseVendors.sdkmod", "sdk_mods/QuickUseVendors.sdkmod", "QuickUseVendors"),
-    bl1_mod("boss_bars", "Boss Health Bars", "Big health bars for bosses", "Shows a boss health bar at the top of the screen, like the later games. By Ry0511.", Group::Mods, false,
+    bl1_mod("boss_bars", "Boss Health Bars", "Big health bars for bosses", "Shows a boss health bar at the top of the screen, like the later games. Its author hasn't tested it on the Enhanced edition yet, so it's opt-in. By Ry0511.", Group::Mods, false,
         "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/boss_bars.sdkmod", "sdk_mods/boss_bars.sdkmod", "boss_bars"),
     bl1_mod("auto_save", "Configurable Auto-Save", "Frequent, configurable auto-saves", "More frequent, configurable auto-saves like modern games. By Ry0511.", Group::Mods, false,
         "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/rys_auto_save.sdkmod", "sdk_mods/rys_auto_save.sdkmod", "rys_auto_save"),
@@ -789,9 +821,9 @@ mod tests {
             assert_eq!(t.read(&reloaded).as_ref(), Some(want), "{} did not read back", t.id);
         }
         for (_, name) in GAME.ini_files {
-            let before = std::fs::read_to_string(dir.join(name)).unwrap();
-            let after = std::fs::read_to_string(sandbox.join(name)).unwrap();
-            assert_eq!(before.lines().count(), after.lines().count(), "{name}: settings should edit lines in place, not add them");
+            // Byte lines: a config can be Latin-1 (localized strings), not UTF-8.
+            let lines = |p: std::path::PathBuf| std::fs::read(p).unwrap().split(|&b| b == b'\n').count();
+            assert_eq!(lines(dir.join(name)), lines(sandbox.join(name)), "{name}: settings should edit lines in place, not add them");
         }
         let _ = std::fs::remove_dir_all(&sandbox);
     }

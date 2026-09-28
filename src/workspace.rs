@@ -1251,9 +1251,15 @@ impl Workspace {
     }
 
     pub fn toggle_component(&mut self, id: &'static str, cx: &mut Context<Self>) {
+        let def = self.game().def;
         let selected = &mut self.game_mut().setup_selected;
         if !selected.remove(id) {
             selected.insert(id);
+            // Picking one of two tools that need the same file (Luma and
+            // DXVK both use dxgi.dll) unpicks the other.
+            if let Some(picked) = def.component(id) {
+                selected.retain(|other| def.component(other).is_none_or(|o| !picked.clashes_with(o)));
+            }
         }
         cx.notify();
     }
@@ -1903,9 +1909,9 @@ impl Workspace {
                 let root = need_root()?;
                 Job::Background(Box::new(move || setup::install_sdk_zip(game_id, comp_id, &root, url, folder)))
             }
-            (ComponentKind::Archive { url, dest, skip, enable }, false) => {
+            (ComponentKind::Archive { .. }, false) => {
                 let root = need_root()?;
-                Job::Background(Box::new(move || setup::install_archive(game_id, comp_id, &root, url, dest, skip, enable)))
+                Job::Background(Box::new(move || setup::install_archive(game_id, component, &root)))
             }
             (ComponentKind::Hide { path }, false) => Job::Done(setup::hide_file(game_id, comp_id, &need_root()?, path)?),
             (ComponentKind::Hide { path }, true) => {

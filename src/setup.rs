@@ -100,6 +100,9 @@ pub enum ComponentKind {
         skip: &'static [&'static str],
         /// SDK module to switch on after install.
         enable: Option<&'static str>,
+        /// Files in `dest` that other tools also install (a `dxgi.dll`
+        /// proxy): never written over someone else's copy.
+        exclusive: &'static [&'static str],
     },
     /// A game file moved aside (renamed with `.vp-hidden`), e.g. an in-game
     /// ad. Uninstalling puts it back.
@@ -146,6 +149,24 @@ pub struct Component {
     pub kind: ComponentKind,
     /// Components that must be installed first (e.g. SDK mods need the SDK).
     pub requires: &'static [&'static str],
+}
+
+impl Component {
+    /// Install-folder files only one tool can own (`Binaries\Win64\dxgi.dll`),
+    /// relative to the install root and lowercased.
+    fn slots(&self) -> Vec<String> {
+        let join = |dir: &str, f: &str| format!("{dir}\\{f}").to_ascii_lowercase();
+        match self.kind {
+            ComponentKind::Dxvk { target, exe_dir, .. } => target.dlls().iter().map(|d| join(exe_dir, d)).collect(),
+            ComponentKind::Archive { dest, exclusive, .. } => exclusive.iter().map(|f| join(dest, f)).collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// Whether the two can't be installed together (they claim the same file).
+    pub fn clashes_with(&self, other: &Component) -> bool {
+        self.id != other.id && self.slots().iter().any(|s| other.slots().contains(s))
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -226,7 +247,7 @@ pub fn status(c: &Component, game: &GameState, launch_args: &[String]) -> Status
                 Status::Missing
             }
         }
-        ComponentKind::Archive { dest, .. } => {
+        ComponentKind::Archive { dest, exclusive, .. } => {
             let Some(root) = root else { return needs_install() };
             match manifest::read(game.def.id, c.id) {
                 Some(m)
@@ -236,7 +257,10 @@ pub fn status(c: &Component, game: &GameState, launch_args: &[String]) -> Status
                     Status::Active(None)
                 }
                 Some(_) => Status::Partial,
-                None => Status::Missing,
+                None => match exclusive.iter().find(|f| root.join(dest).join(f).exists()) {
+                    Some(f) => Status::Blocked(format!("Another {f} is already installed (DXVK or ReShade?)")),
+                    None => Status::Missing,
+                },
             }
         }
         ComponentKind::Hide { path } => {
@@ -419,17 +443,21 @@ pub fn unhide_file(game_id: &str, component: &str, root: &Path, path: &str) -> R
     Ok(())
 }
 
-/// Downloads a zip and extracts it into `dest`, recording every file so
-/// uninstall removes exactly what was added (and restores anything replaced).
-pub fn install_archive(
-    game_id: &str,
-    component: &str,
-    root: &Path,
-    url: &str,
-    dest: &str,
-    skip: &[&str],
-    enable: Option<&str>,
-) -> Result<String> {
+/// Downloads an `Archive` component's zip and extracts it into its `dest`,
+/// recording every file so uninstall removes exactly what was added (and
+/// restores anything replaced).
+pub fn install_archive(game_id: &str, c: &Component, root: &Path) -> Result<String> {
+    let ComponentKind::Archive { url, dest, skip, enable, exclusive } = c.kind else {
+        bail!("{} isn't an archive", c.id)
+    };
+    let component = c.id;
+    let ours = manifest::read(game_id, component).map(|m| m.files).unwrap_or_default();
+    for f in exclusive {
+        let path = root.join(dest).join(f);
+        if path.exists() && !ours.contains(&path) {
+            bail!("Another {f} is already installed (DXVK or ReShade?). Remove it first");
+        }
+    }
     let tmp = atomic::temp_file(&format!("{component}.zip"));
     net::download(url, &tmp)?;
     let mut archive = zip::ZipArchive::new(fs::File::open(&tmp)?).context("not a valid zip")?;
@@ -633,6 +661,18 @@ mod tests {
     use super::*;
 
     #[test]
+    fn luma_and_dxvk_clash() {
+        let game = &crate::games::bl1e::GAME;
+        let (luma, dxvk) = (game.component("luma").unwrap(), game.component("dxvk").unwrap());
+        assert!(luma.clashes_with(dxvk) && dxvk.clashes_with(luma));
+        assert!(!luma.clashes_with(game.component("ultrawide").unwrap()));
+        // BL2's DXVK (d3d9) clashes with nothing in its own bundle.
+        let bl2 = &crate::games::bl2::GAME;
+        let d3d9 = bl2.component("dxvk").unwrap();
+        assert!(bl2.setup.iter().all(|c| !d3d9.clashes_with(c)));
+    }
+
+    #[test]
     fn component_ids_are_unique_and_dependencies_exist() {
         for game in crate::games::all() {
             let mut seen = std::collections::HashSet::new();
@@ -683,8 +723,27 @@ mod live_tests {
     #[test]
     #[ignore]
     fn live_community_patch_builds() {
-        let game = &crate::games::bl2::GAME;
-        let root = std::env::temp_dir().join("vaulter-textpatch-sandbox");
+        let text = build_live_patch(&crate::games::bl2::GAME);
+        assert!(!text.contains("Permaslag"));
+        assert!(text.contains("Fixed Moonshiner Audio"));
+    }
+
+    /// The Pre-Sequel's patch: its fixes and neutral features only.
+    #[test]
+    #[ignore]
+    fn live_tps_community_patch_builds() {
+        let text = build_live_patch(&crate::games::tps::GAME);
+        assert!(text.contains("bAutomaticallyPickup True"), "Moonstone auto-pickup");
+        assert!(text.contains("bSendOnly False"), "two-way fast travel");
+        assert!(!text.contains("Running UCP"), "no Badass Rank branding");
+        assert!(!text.contains("BalanceMod_PT3"), "no UVHM balance changes");
+    }
+
+    /// Builds every text patch of `game` (downloads) into a sandbox, checks
+    /// it is well formed, removes it again and returns its text.
+    fn build_live_patch(game: &crate::games::GameDef) -> String {
+        let id = format!("sandbox-{}", game.id);
+        let root = std::env::temp_dir().join(format!("vaulter-textpatch-{}", game.id));
         let _ = fs::remove_dir_all(&root);
         fs::create_dir_all(root.join("Binaries")).unwrap();
         let parts: Vec<(&str, &[TextSource])> = game
@@ -698,16 +757,15 @@ mod live_tests {
         let ComponentKind::TextPatch { game: tag, gearbox_url, .. } = game.component("community_patch").unwrap().kind else {
             panic!()
         };
-        let msg = rebuild_text_patch("sandbox", &root, tag, gearbox_url, &parts).unwrap();
+        let msg = rebuild_text_patch(&id, &root, tag, gearbox_url, &parts).unwrap();
         println!("{msg}");
         let text = crate::textmod::decode(&fs::read(root.join(TEXT_PATCH_FILE)).unwrap());
-        assert!(!text.contains("Permaslag"));
-        assert!(text.contains("Fixed Moonshiner Audio"));
+        assert!(text.contains(&format!("<type name=\"{tag}\" offline=\"true\"/>")));
         let keys = text.lines().find(|l| l.contains("SparkServiceConfiguration_0 Keys")).unwrap();
         let values = text.lines().find(|l| l.contains("SparkServiceConfiguration_0 Values")).unwrap();
         let n_keys = keys.matches("-BLCMM").count();
         println!("{} commands, {n_keys} hotfixes, {} bytes", text.split("#Commands:").nth(1).unwrap().lines().filter(|l| l.starts_with("set")).count(), text.len());
-        assert!(n_keys > 100);
+        assert!(n_keys > 20);
         // Values are a quoted list with escaped quotes inside; count top-level entries.
         let mut entries = 0;
         let (mut in_str, mut escaped) = (false, false);
@@ -723,10 +781,11 @@ mod live_tests {
         assert_eq!(entries, n_keys, "Keys and Values must line up");
         let tml = fs::read_to_string(root.join("sdk_mods/settings/text_mod_loader.json")).unwrap();
         assert!(tml.contains("VaultPatcher.blcm"));
-        assert_eq!(text_patch_parts("sandbox").len(), parts.len());
-        rebuild_text_patch("sandbox", &root, tag, gearbox_url, &[]).unwrap();
+        assert_eq!(text_patch_parts(&id).len(), parts.len());
+        rebuild_text_patch(&id, &root, tag, gearbox_url, &[]).unwrap();
         assert!(!root.join(TEXT_PATCH_FILE).exists());
         let _ = fs::remove_dir_all(&root);
+        text
     }
 
     #[test]
@@ -796,12 +855,16 @@ mod live_tests {
         for c in game.setup {
             let result = match c.kind {
                 ComponentKind::File { url, dest, enable } => install_file(id, c.id, &root, url, dest, enable),
-                ComponentKind::Archive { url, dest, skip, enable } => install_archive(id, c.id, &root, url, dest, skip, enable),
+                ComponentKind::Archive { .. } => install_archive(id, c, &root),
                 ComponentKind::Hide { path } => hide_file(id, c.id, &root, path),
                 ComponentKind::Dxvk { target, exe_dir, conf } => install_dxvk(id, c.id, &root, target, exe_dir, conf),
                 _ => continue,
             };
             println!("{:<18} {:?}", c.id, result);
+            if c.id == "luma" {
+                assert!(result.is_err(), "Luma must not overwrite DXVK's dxgi.dll");
+                continue;
+            }
             result.unwrap();
             if let ComponentKind::File { dest, enable: Some(module), .. } = c.kind {
                 // The module name we enable must be the .sdkmod's root folder.
@@ -820,7 +883,7 @@ mod live_tests {
         let pe = u32::from_le_bytes(dxgi[0x3C..0x40].try_into().unwrap()) as usize;
         assert_eq!(u16::from_le_bytes([dxgi[pe + 4], dxgi[pe + 5]]), 0x8664, "DXVK must be 64-bit for BL1E");
 
-        for c in game.setup {
+        for c in game.setup.iter().filter(|c| c.id != "luma") {
             match c.kind {
                 ComponentKind::File { .. } | ComponentKind::Archive { .. } | ComponentKind::Dxvk { .. } => uninstall_files(id, c.id, &root).unwrap(),
                 ComponentKind::Hide { path } => unhide_file(id, c.id, &root, path).unwrap(),
@@ -831,6 +894,13 @@ mod live_tests {
         for gone in ["Binaries/Win64/version.dll", "Binaries/Win64/winmm.dll", "Binaries/Win64/dxgi.dll", "Binaries/Win64/d3d11.dll", "sdk_mods/BloodwingReturnFix/__init__.py", "sdk_mods/AutopickupBL1E.sdkmod"] {
             assert!(!root.join(gone).exists(), "{gone} left behind");
         }
+        // With DXVK gone, Luma installs into the same slot and comes out cleanly.
+        install_archive(id, game.component("luma").unwrap(), &root).unwrap();
+        for f in ["Binaries/Win64/dxgi.dll", "Binaries/Win64/Luma-Borderlands GOTY Enhanced.addon", "Binaries/Win64/Luma/d3dcompiler_47.dll"] {
+            assert!(root.join(f).is_file(), "{f} missing");
+        }
+        uninstall_files(id, "luma", &root).unwrap();
+        assert!(!root.join("Binaries/Win64/dxgi.dll").exists() && !root.join("Binaries/Win64/Luma/d3dcompiler_47.dll").exists());
         crate::mods::uninstall_sdk(id, game.mods.unwrap(), &root).unwrap();
         assert!(!root.join("Binaries/Win64/dinput8.dll").exists(), "SDK loader left behind");
         let _ = fs::remove_dir_all(&root);

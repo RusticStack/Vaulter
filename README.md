@@ -50,7 +50,7 @@ Better graphics, fewer crashes, mods and bug fixes, without editing a single fil
 |---|---|
 | Borderlands 2 | Full |
 | Borderlands: Game of the Year Enhanced | Full |
-| Borderlands: The Pre-Sequel | Preview (settings, presets, mod SDK) |
+| Borderlands: The Pre-Sequel | Full |
 
 Steam and Epic Games installs are found automatically; you can also pick the folder yourself.
 
@@ -155,7 +155,7 @@ vendor/        our fork of gpui and gpui-component; see vendor/README.md
 ### Sources
 
 Tweak keys and values were checked against a live install and the game's localization
-files. Background research came from PCGamingWiki, the Nvidia BL2/TPS tweak guide, OpenBLCMM
+files; The Pre-Sequel's differences come from OpenBLCMM, BLCMods and the SDK mod database. Background research came from PCGamingWiki, the Nvidia BL2/TPS tweak guide, OpenBLCMM
 (`IniTweaksPanel`, `HexDictionary`), the BLCMods Hex-Edits wiki and the bl-sdk projects.
 
 ## License

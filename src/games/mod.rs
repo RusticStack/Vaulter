@@ -19,6 +19,8 @@ pub enum Support {
     /// Tweaks, patches and mods are all wired up.
     Full,
     /// Detected and tweakable, but some pages are not available yet.
+    /// Unused while every listed game is Full; new titles start here.
+    #[allow(dead_code)]
     Preview,
 }
 

@@ -205,16 +205,22 @@ pub fn inline_viewer(tweak: &'static Tweak, ws: &Entity<Workspace>, width: f32, 
                         .on_click(move |_, _, cx| open_ws.update(cx, |ws, cx| ws.open_preview(tweak.id, right, cx))),
                 )
                 .child(div().flex_1())
-                .when_some(link.clone(), |d, url| d.child(nvidia_link(tweak, url))),
+                .when_some(link.clone(), |d, url| d.child(nvidia_link(tweak, url, def.id))),
         );
     } else if let Some(url) = link {
-        col = col.child(nvidia_link(tweak, url));
+        col = col.child(nvidia_link(tweak, url, def.id));
     }
     Some(col.into_any_element())
 }
 
-/// HyperlinkButton to Nvidia's comparison page.
-fn nvidia_link(tweak: &Tweak, url: String) -> impl IntoElement {
+/// HyperlinkButton to Nvidia's comparison page. Nvidia's guide covers both
+/// Willow games but its screenshots are Borderlands 2's, so TPS says so.
+fn nvidia_link(tweak: &Tweak, url: String, game_id: &str) -> impl IntoElement {
+    let (label, tip) = if game_id == "bl2" {
+        ("Nvidia comparison", "Nvidia's interactive comparison, in your browser")
+    } else {
+        ("Nvidia comparison (BL2)", "Nvidia's interactive comparison, shot in Borderlands 2 on the same engine, in your browser")
+    };
     ui::focusable(div().id(SharedString::from(format!("nv-{}", tweak.id))))
         .flex()
         .items_center()
@@ -227,9 +233,9 @@ fn nvidia_link(tweak: &Tweak, url: String) -> impl IntoElement {
         .cursor_pointer()
         .hover(|s| s.bg(theme::panel_hi()))
         .active(|s| s.bg(theme::panel_pressed()))
-        .tooltip(ui::tip("Nvidia's interactive comparison, in your browser"))
+        .tooltip(ui::tip(tip))
         .child(ui::icon(Icon::Link).size(px(12.)).text_color(theme::accent_text()))
-        .child("Nvidia comparison")
+        .child(label)
         .on_click(move |_, _, cx| cx.open_url(&url))
 }
 

@@ -1,5 +1,6 @@
 //! Borderlands: The Pre-Sequel: the same Willow engine branch as Borderlands 2,
-//! so it shares BL2's tweak catalog, SDK and pages.
+//! so it shares BL2's tweak catalog, SDK and pages, with its own one-click
+//! bundle. Hex signatures match OpenBLCMM's HexDictionary for TPS.
 
 use super::bl2;
 use super::willow;
@@ -31,7 +32,7 @@ pub static GAME: GameDef = GameDef {
     name: "Borderlands: The Pre-Sequel",
     short: "TPS",
     tagline: "Elpis. Low gravity. Oz kits and cryo.",
-    support: Support::Preview,
+    support: Support::Full,
     steam_app_ids: &[261640],
     epic_names: &["Pre-Sequel"],
     exe: "Binaries\\Win32\\BorderlandsPreSequel.exe",
@@ -41,9 +42,11 @@ pub static GAME: GameDef = GameDef {
     categories: willow::CATEGORIES,
     tweaks: willow::TWEAKS,
     // bForceNoMovies soft-locks TPS at startup (OpenBLCMM disables it too).
-    hidden_tweaks: &["no_movies", "unbind_remaster"],
+    // The Ctrl+Shift+R bind and the news-feed URL are BL2's; TPS hides its
+    // menu ads with the No Ads mod instead.
+    hidden_tweaks: &["no_movies", "unbind_remaster", "hide_news"],
     ranges: willow::RANGES,
-    presets: willow::PRESETS,
+    presets: willow::TPS_PRESETS,
     patches: PATCHES,
     mods: Some(&bl2::WILLOW2_SDK),
     launch_args: bl2::LAUNCH_ARGS,

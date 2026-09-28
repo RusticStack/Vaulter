@@ -1,7 +1,8 @@
 //! Tweak catalog for Gearbox's "Willow" Unreal Engine 3 branch, used by
 //! Borderlands 2 and The Pre-Sequel. Sections and keys were checked against
 //! a live Borderlands 2 install; option meanings come from the game's own
-//! localization files (`WillowGame.int`).
+//! localization files (`WillowGame.int`). The Pre-Sequel's differences come
+//! from OpenBLCMM, the BLCMods wiki, PCGamingWiki and the SDK mod database.
 
 use crate::core::display::DisplayMode;
 use crate::setup::{Component, ComponentKind, DxvkTarget, Group, TextSource};
@@ -812,6 +813,12 @@ const BETTER_UI: Component = sdk_mod("better_ui", "Better Menu Controls", "Faste
     Group::Mods, false, "https://github.com/RedxYeti/bl2-willow2-sdkmods/raw/refs/heads/main/BetterUIControls/BetterUIControls.sdkmod", "sdk_mods/BetterUIControls.sdkmod", "BetterUIControls");
 const INSTA_VEHICLES: Component = sdk_mod("insta_vehicles", "Instant Vehicles", "Summon a vehicle anywhere", "Borderlands 4 style: summon a vehicle anywhere instead of walking to a Catch-A-Ride. Opt-in. By ZetaDaemon.",
     Group::Mods, false, "https://github.com/ZetaDaemon/willow2-sdk-mods/releases/download/nightly/insta_vehicles.sdkmod", "sdk_mods/insta_vehicles.sdkmod", "insta_vehicles");
+// The Pre-Sequel only. Insta Vehicles is BL2-only (its database entry says so);
+// Alt Use Catch-A-Ride is the TPS way to get a vehicle without walking to a station.
+const OZ_KIT_FIX: Component = sdk_mod("ozkit_fix", "Bomber Oz Kit Fix", "Bomber Oz kits throw their free grenade again", "Fixes grenade-throwing skills breaking the Bomber Oz kit's free grenade. By Zazk0u.",
+    Group::Fixes, true, "https://raw.githubusercontent.com/Zazk0u/new-bl-sdk-mods/refs/heads/main/bomber_ozkit_fix/bomber_ozkit_fix.sdkmod", "sdk_mods/bomber_ozkit_fix.sdkmod", "bomber_ozkit_fix");
+const CATCH_A_RIDE: Component = sdk_mod("catch_a_ride", "Quick Catch-A-Ride", "Deploy a vehicle in one press", "The alt-use key at a Catch-A-Ride deploys a vehicle instantly, skipping the menu. Pick the vehicle and its weapon in the mod's options. Opt-in. By Siggles.",
+    Group::Mods, false, "https://github.com/Siggless/bl-sdk-mods/raw/refs/heads/main/AltUseCatchARide/AltUseCatchARide.sdkmod", "sdk_mods/AltUseCatchARide.sdkmod", "AltUseCatchARide");
 const HIDE_MISSIONS: Component = sdk_mod("hide_missions", "Tidy Mission Log", "Mission log only shows what you've found", "Hides missions you haven't discovered yet, like the modern games' mission log. By apple1417.",
     Group::Mods, false, "https://github.com/apple1417/willow2-sdk-mods/releases/download/nightly/hide_undiscovered_missions.sdkmod", "sdk_mods/hide_undiscovered_missions.sdkmod", "hide_undiscovered_missions");
 
@@ -903,16 +910,77 @@ const TIMESAVER: Component = Component {
     requires: &["tml"],
 };
 
+// ---- The Pre-Sequel's patch ------------------------------------------------------
+// TPS's Community Patch has no fixes-only branch (most of it is a balance and
+// loot overhaul), so only its bug fixes and neutral features are taken.
+
+const TPS_GEARBOX_HOTFIXES: &str =
+    "https://raw.githubusercontent.com/BLCM/OpenBLCMM/7ccf31d7a58e315c1f868ef9d31852a8afd3672c/src/resources/TPS/GBX_hotfixes.blcm";
+
+const TPS_PATCH_SOURCES: &[TextSource] = &[
+    TextSource {
+        title: "Community Patch 2.3 (fixes only)",
+        credit: "The Pre-Sequel Community Patch 2.3 by the Community Patch Team.",
+        url: concat!("https://raw.githubusercontent.com/BLCM/BLCMods/b512a9b13f94cc11ce7f0b03c7f5080d8612418c", "/Pre%20Sequel%20Mods/Community%20Patch/Community%20Patch%202.3/patch.txt"),
+        include: &[
+            "patch/Patch 2.3/Features/No Broken Chests Near Denial Subroutine",
+            "patch/Patch 2.3/Features/Fix Maliwan Cryo Pistols to actually Spawn.",
+            "patch/Patch 2.3/Features/Moonstone autopickup",
+            "patch/Patch 2.3/Features/Enable fast travels",
+            "patch/Patch 2.3/Skinpool Reassignments (DO NOT UNCHECK)",
+        ],
+        exclude: &[],
+    },
+    TextSource {
+        title: "TPS Sorted Fast Travel",
+        credit: "TPS Sorted Fast Travel by Apocalyptech (CC0).",
+        url: concat!("https://raw.githubusercontent.com/BLCM/BLCMods/b512a9b13f94cc11ce7f0b03c7f5080d8612418c", "/Pre%20Sequel%20Mods/Apocalyptech/TPS%20Sorted%20Fast%20Travel/TPS%20Sorted%20Fast%20Travel.blcm"),
+        include: &[],
+        exclude: &[],
+    },
+];
+
+const TPS_TIMESAVER_SOURCES: &[TextSource] = &[TextSource {
+    title: "TPS Mega TimeSaver XL",
+    credit: "TPS Mega TimeSaver XL by Apocalyptech (CC0).",
+    url: concat!("https://raw.githubusercontent.com/BLCM/BLCMods/b512a9b13f94cc11ce7f0b03c7f5080d8612418c", "/Pre%20Sequel%20Mods/Apocalyptech/TPS%20Mega%20TimeSaver%20XL/TPS%20Mega%20TimeSaver%20XL.blcm"),
+    include: &[],
+    exclude: &[],
+}];
+
+const TPS_COMMUNITY_PATCH: Component = Component {
+    id: "community_patch",
+    name: "Vaulter Community Patch",
+    summary: "Bug fixes and Moonstone auto-pickup, no balance changes",
+    description: "Built on your PC from the Pre-Sequel Community Patch's bug fixes (unlootable chests at the Denial Subroutine, Maliwan cryo pistols that never spawned, one-way fast-travel stations) and Apocalyptech's alphabetical fast travel list, plus Moonstones picked up automatically. Its weapon, skill, loot and difficulty changes are left out. Gearbox's official hotfixes are included, so it works offline.",
+    group: Group::Fixes,
+    recommended: true,
+    kind: ComponentKind::TextPatch { game: "TPS", gearbox_url: TPS_GEARBOX_HOTFIXES, sources: TPS_PATCH_SOURCES },
+    requires: &["tml"],
+};
+
+const TPS_TIMESAVER: Component = Component {
+    id: "timesaver",
+    name: "Mega TimeSaver XL",
+    summary: "Containers, doors, lifts and fast travel about 5x faster",
+    description: "Apocalyptech's mod that speeds up almost every waiting animation: containers (loot is ready at once), doors, lifts, fast-travel stations, oxygen generators, the Grinder, slot machines and vehicle entry, plus a few slow mission objects. A sped-up door can let enemies through sooner, so it's opt-in.",
+    group: Group::Mods,
+    recommended: false,
+    kind: ComponentKind::TextPatch { game: "TPS", gearbox_url: TPS_GEARBOX_HOTFIXES, sources: TPS_TIMESAVER_SOURCES },
+    requires: &["tml"],
+};
+
 pub const BL2_SETUP: &[Component] = &[
     MODERN, LAUNCHER, LAA, DXVK, HD, SDK, FIRING_FIX, RELOAD_FIX, TEXT_MOD_LOADER, COMMUNITY_PATCH,
     QUICK_STARTUP, ALT_USE_VENDORS, AUTO_PICKUP, ITEM_LIGHTS, NO_ADS, BETTER_UI, INSTA_VEHICLES,
     HIDE_MISSIONS, TIMESAVER,
 ];
 
-/// The Pre-Sequel: same bundle minus the BL2-only mods.
+/// The Pre-Sequel: the same foundation with its own patch, TimeSaver and mods.
 pub const TPS_SETUP: &[Component] = &[
-    MODERN, LAUNCHER, LAA, DXVK, HD, SDK, FIRING_FIX, QUICK_STARTUP, ALT_USE_VENDORS, AUTO_PICKUP,
-    ITEM_LIGHTS, NO_ADS, BETTER_UI, HIDE_MISSIONS,
+    MODERN, LAUNCHER, LAA, DXVK, HD, SDK, FIRING_FIX, RELOAD_FIX, OZ_KIT_FIX, TEXT_MOD_LOADER,
+    TPS_COMMUNITY_PATCH, QUICK_STARTUP, ALT_USE_VENDORS, AUTO_PICKUP, ITEM_LIGHTS, NO_ADS, BETTER_UI,
+    CATCH_A_RIDE, HIDE_MISSIONS, TPS_TIMESAVER,
 ];
 
 pub const QUICK: &[crate::games::QuickSection] = &[
@@ -1099,31 +1167,7 @@ pub const PRESETS: &[Preset] = &[
             ("pool_size", N(400.0)),
         ],
     },
-    Preset {
-        id: "ultra",
-        name: "Pandora Ultra",
-        rarity: Rarity::Legendary,
-        description: "Everything maxed and a bit beyond: Ultra High view distance, 4096 sun shadows, a larger texture pool and every effect on. Needs a strong GPU.",
-        values: &[
-            ("view_distance", C("3")),
-            ("game_detail", C("0")),
-            ("detail_mode", C("2")),
-            ("foliage", N(1.0)),
-            ("texture_quality", C("0")),
-            ("texture_bias", C("0")),
-            ("pool_size", N(600.0)),
-            ("aniso", C("16")),
-            ("ao", B(true)),
-            ("bloom", B(true)),
-            ("light_shafts", B(true)),
-            ("dynamic_shadows", B(true)),
-            ("scene_shadow_res", C("4096")),
-            ("shadow_res_min", C("2048")),
-            ("shadow_res_max", C("2048")),
-            ("decals", C("2")),
-            ("dynamic_lights", B(true)),
-        ],
-    },
+    ULTRA_BL2,
     Preset {
         id: "vanilla",
         name: "Factory Settings",
@@ -1131,6 +1175,47 @@ pub const PRESETS: &[Preset] = &[
         description: "Every tweak back to the game's shipped default. Resolution and window mode are left alone.",
         values: &[],
     },
+];
+
+
+/// The top preset's settings; each game names it after its own world.
+const ULTRA_VALUES: &[(&str, crate::tweaks::DefaultValue)] = &[
+        ("view_distance", C("3")),
+        ("game_detail", C("0")),
+        ("detail_mode", C("2")),
+        ("foliage", N(1.0)),
+        ("texture_quality", C("0")),
+        ("texture_bias", C("0")),
+        ("pool_size", N(600.0)),
+        ("aniso", C("16")),
+        ("ao", B(true)),
+        ("bloom", B(true)),
+        ("light_shafts", B(true)),
+        ("dynamic_shadows", B(true)),
+        ("scene_shadow_res", C("4096")),
+        ("shadow_res_min", C("2048")),
+        ("shadow_res_max", C("2048")),
+        ("decals", C("2")),
+        ("dynamic_lights", B(true)),
+    ];
+
+const ULTRA_BL2: Preset = Preset {
+    id: "ultra",
+    name: "Pandora Ultra",
+    rarity: Rarity::Legendary,
+    description: "Everything maxed and a bit beyond: Ultra High view distance, 4096 sun shadows, a larger texture pool and every effect on. Needs a strong GPU.",
+    values: ULTRA_VALUES,
+};
+
+/// The Pre-Sequel: the same presets, with the top one named for Elpis.
+pub const TPS_PRESETS: &[Preset] = &[
+    PRESETS[0],
+    PRESETS[1],
+    PRESETS[2],
+    PRESETS[3],
+    PRESETS[4],
+    Preset { name: "Elpis Ultra", ..ULTRA_BL2 },
+    PRESETS[6],
 ];
 
 #[cfg(test)]
